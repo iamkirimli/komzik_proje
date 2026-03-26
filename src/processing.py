@@ -5,16 +5,20 @@ class TelemetryProcessor:
     def __init__(self, threshold=3.5):
         self.threshold = threshold
 
-    def apply_modified_zscore(self, data):
-        """1. ADIM: Sıçramaları (Outliers) Tespit Et"""
-        median = np.median(data)
-        ad = np.abs(data - median)
-        mad = np.median(ad)
+    def apply_modified_zscore(self, data, window_size=50):
+        """YEREL (ROLLING) MODIFIED Z-SCORE: Sinyalin o anki akışına göre hata bulur."""
+        series = pd.Series(data)
         
-        # 0'a bölünme hatasını engellemek için küçük bir değer ekle
-        modified_z_score = 0.6745 * ad / (mad + 1e-6)
+        # 1. Yerel Medyanı ve Yerel Sapmayı (MAD) hesapla
+        rolling_median = series.rolling(window=window_size, center=True).median()
+        rolling_ad = np.abs(series - rolling_median)
+        rolling_mad = rolling_ad.rolling(window=window_size, center=True).median()
         
-        outliers_mask = modified_z_score > self.threshold
+        # 2. Modified Z-Score hesapla
+        modified_z_score = 0.6745 * rolling_ad / (rolling_mad + 1e-6)
+        
+        # 3. Eşik değerini aşanları bul (NaN değerleri False kabul et)
+        outliers_mask = (modified_z_score > self.threshold).fillna(False)
         return outliers_mask
 
     def apply_median_filter(self, data, window_size=5):

@@ -46,9 +46,9 @@ if yuklenen_dosya is not None:
     with tab1:
         # Profesyonel Karşılaştırma Grafiği
         # Streamlit line_chart birden fazla sütunu aynı anda çizebilir
-        grafik_data = df_processed[['raw_value', 'cleaned_value']]
-        st.line_chart(grafik_data)
-        st.caption("Mavi: Ham Veri | Turuncu: Temizlenmiş Veri")
+        grafik_data = df_processed[['raw_value', 'cleaned_value']].copy()
+        st.line_chart(grafik_data, color=["#DC143C", "#00FFFF"]) # 1. Crimson (Kırmızı), 2. Cyan (Açık Mavi)
+        st.caption("Kırmızı: Ham Veri | Turkuaz: Temizlenmiş Veri")
 
     with tab2:
         st.dataframe(df_processed, use_container_width=True)
