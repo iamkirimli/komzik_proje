@@ -1,47 +1,59 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+# 1. KENDİ DOSYAMIZI İÇERİ ALIYORUZ
+from processing import TelemetryProcessor 
 
 st.set_page_config(page_title="Kozmik Pipeline", layout="wide")
+
+# --- SIDEBAR (YAN MENÜ) ---
+with st.sidebar:
+    st.title("🛰️ Kontrol Paneli")
+    st.info("Algoritma hassasiyetini buradan ayarlayabilirsiniz.")
+    
+    # Kullanıcıya seçim şansı verelim
+    esik_degeri = st.slider("Z-Score Eşik Değeri (Hassasiyet)", 1.0, 10.0, 3.5, step=0.1)
+    pencere_boyutu = st.slider("Medyan Filtre Penceresi", 3, 15, 5, step=2)
+
 st.title("🚀 Kozmik Veri Ayıklama ve İşleme Hattı")
 
-yuklenen_dosya = st.file_uploader("Lütfen temizlenecek CSV dosyasını seçin", type="csv")
+yuklenen_dosya = st.file_uploader("Temizlenecek CSV dosyasını seçin", type="csv")
 
 if yuklenen_dosya is not None:
     df = pd.read_csv(yuklenen_dosya)
     
-    # --- İŞLEME (ALGORİTMA) KATMANI ---
-    # 1. Z-Score Hesapla: (Veri - Ortalama) / Standart Sapma
-    esik_degeri = 3.0 # Bu değerden büyükse "bozuk" kabul ediyoruz
-    ortalama = df['raw_value'].mean()
-    sapma = df['raw_value'].std()
+    # --- İŞLEME KATMANI (BEYİN BURASI) ---
+    # 2. Sınıfımızı sidebar'dan gelen değerle oluşturuyoruz
+    processor = TelemetryProcessor(threshold=esik_degeri)
     
-    df['z_score'] = (df['raw_value'] - ortalama) / sapma
+    # 3. Temizleme işlemini başlatıyoruz
+    df_processed = processor.clean_telemetry(df)
     
-    # 2. Bozuk Verileri Tespit Et ve İşaretle
-    df['is_outlier'] = df['z_score'].abs() > esik_degeri
-    
-    # 3. DÜZELTME: Bozuk olanların yerine medyan değeri yaz
-    df['cleaned_value'] = df['raw_value'].copy()
-    medyan_deger = df['raw_value'].median()
-    df.loc[df['is_outlier'], 'cleaned_value'] = medyan_deger
-    
-    # --- GÖRSELLEŞTİRME KATMANI ---
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🔴 Ham Veri (Bozuk)")
-        st.line_chart(df['raw_value'])
-        
-    with col2:
-        st.subheader("🟢 Temizlenmiş Veri (Düzenlenmiş)")
-        st.line_chart(df['cleaned_value'])
+    # --- UI/UX METRİKLER ---
+    hata_sayisi = df_processed['is_outlier'].sum()
+    hata_orani = (hata_sayisi / len(df_processed)) * 100
 
-    # 4. RAPORLAMA VE İNDİRME
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Toplam Veri", len(df_processed))
+    m2.metric("Tespit Edilen Hata", hata_sayisi, delta=f"%{hata_orani:.2f}", delta_color="inverse")
+    m3.metric("Durum", "Filtrelendi", delta="Aktif")
+
+    # --- GÖRSELLEŞTİRME ---
     st.divider()
-    toplam_hata = df['is_outlier'].sum()
-    st.warning(f"Sistem toplam {toplam_hata} adet kozmik radyasyon hatası tespit etti ve düzeltti!")
     
-    # Temizlenmiş dosyayı indirilebilir yap
-    csv = df[['timestamp', 'cleaned_value']].to_csv(index=False).encode('utf-8')
-    st.download_button("✅ Temizlenmiş CSV Dosyasını İndir", data=csv, file_name="temiz_veri.csv")
+    tab1, tab2 = st.tabs(["📊 Karşılaştırmalı Grafik", "📋 Ham Veri Tablosu"])
+    
+    with tab1:
+        # Profesyonel Karşılaştırma Grafiği
+        # Streamlit line_chart birden fazla sütunu aynı anda çizebilir
+        grafik_data = df_processed[['raw_value', 'cleaned_value']]
+        st.line_chart(grafik_data)
+        st.caption("Mavi: Ham Veri | Turuncu: Temizlenmiş Veri")
+
+    with tab2:
+        st.dataframe(df_processed, use_container_width=True)
+
+    # 4. İNDİRME BUTONU
+    st.divider()
+    csv = df_processed.to_csv(index=False).encode('utf-8')
+    st.download_button("✅ Temizlenmiş Veriyi İndir", data=csv, file_name="kozmik_sonuc.csv")
