@@ -3,6 +3,18 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from processing import TelemetryProcessor 
+def calculate_snr(df):
+    signal = df['cleaned_value']
+    noise = df['raw_value'] - df['cleaned_value']
+    
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    
+    if noise_power == 0:
+        return np.inf  # Gürültü yoksa SNR sonsuz
+    
+    snr = 10 * np.log10(signal_power / noise_power)
+    return snr
 
 st.set_page_config(page_title="Kozmik Pipeline", layout="wide")
 
@@ -33,7 +45,7 @@ if yuklenen_dosya is not None:
     
     # Veriyi işle
     df_processed = processor.clean_telemetry(df)
-    
+    snr_value = calculate_snr(df_processed)
     if use_kalman:
         df_processed['kalman_value'] = processor.apply_kalman_filter(
             df_processed['cleaned_value'], 
@@ -47,6 +59,7 @@ if yuklenen_dosya is not None:
     # 4. ADIM: Üst Bilgi Paneli
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
+    m4.metric("📡 SNR (dB)", f"{snr_value:.2f} dB")
     m1.metric("📊 Toplam Veri", f"{len(df_processed)} Satır")
     m2.metric("⚠️ Tespit Edilen Hata", f"{hata_sayisi} Adet", 
               delta=f"%{hata_orani:.1f} Oran", delta_color="inverse")
