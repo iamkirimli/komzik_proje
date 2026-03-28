@@ -42,7 +42,7 @@ if canli_mod:
         sutunlar = ['speed', 'density', 'temperature']
         for col in sutunlar:
             df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce')
-        df_raw['time_tag'] = pd.to_datetime(df_raw['time_tag'])
+        df_raw['time_tag'] = pd.to_datetime(df_raw['time_tag'], errors='coerce').dt.tz_localize(None)
         
         df_raw = df_raw.dropna(subset=sutunlar).reset_index(drop=True)
         
@@ -96,12 +96,12 @@ else:
         df_raw = pd.read_csv(uploaded_file)
         
         # Zaman damgasını işleyelim
-        df_raw['timestamp'] = pd.to_datetime(df_raw['timestamp'])
+        df_raw['timestamp'] = pd.to_datetime(df_raw['timestamp']).dt.tz_localize(None)
         
         st.success(f"{uploaded_file.name} başarıyla yüklendi ve işlendi.")
 
         # İşlemciyi kullanarak veriyi temizle
-        df_processed = processor.clean_telemetry(df_raw.copy())
+        df_processed = processor.clean_telemetry(df_raw.copy(), column='raw_value')
         
         # --- SEKMELER ---
         tab1, tab2, tab3 = st.tabs(["📊 Genel Bakış", "📈 Detaylı Analiz", "🔍 Anomali Analizi"])
