@@ -55,7 +55,12 @@ if canli_mod:
         sutunlar = ['speed', 'density', 'temperature']
         for col in sutunlar:
             df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce')
+<<<<<<< HEAD
         df_raw['time_tag'] = pd.to_datetime(df_raw['time_tag'])
+=======
+        df_raw['time_tag'] = pd.to_datetime(df_raw['time_tag'], errors='coerce').dt.tz_localize(None)
+        
+>>>>>>> e2b6206dab09625c4c4c915db2f6399cc90dfc2a
         df_raw = df_raw.dropna(subset=sutunlar).reset_index(drop=True)
         
         # Yeni Veri Kontrolü ve Kayan Pencere
@@ -104,6 +109,7 @@ if canli_mod:
 
 # --- 5. STATİK DOSYA MODU ---
 else:
+<<<<<<< HEAD
     st.title("🚀 Kozmik Veri İşleme Hattı")
     yuklenen_dosya = st.file_uploader("Veri Dosyasını Seçin (CSV veya JSON)", type=["csv", "json"])
 
@@ -167,3 +173,81 @@ else:
         
         except Exception as e:
             st.error(f"⚠️ Dosya İşleme Hatası: {e}")
+=======
+    st.title("🛰️ Kozmik Telemetri Veri Analiz Platformu")
+    
+    uploaded_file = st.file_uploader("Lütfen bir telemetri dosyası seçin (CSV)", type="csv")
+    
+    if uploaded_file is not None:
+        df_raw = pd.read_csv(uploaded_file)
+        
+        # Zaman damgasını işleyelim
+        df_raw['timestamp'] = pd.to_datetime(df_raw['timestamp']).dt.tz_localize(None)
+        
+        st.success(f"{uploaded_file.name} başarıyla yüklendi ve işlendi.")
+
+        # İşlemciyi kullanarak veriyi temizle
+        df_processed = processor.clean_telemetry(df_raw.copy(), column='raw_value')
+        
+        # --- SEKMELER ---
+        tab1, tab2, tab3 = st.tabs(["📊 Genel Bakış", "📈 Detaylı Analiz", "🔍 Anomali Analizi"])
+        
+        with tab1:
+            st.header("Veriye İlk Bakış")
+            st.dataframe(df_processed.head())
+            
+            st.subheader("İstatistiksel Özet")
+            st.dataframe(df_processed.describe())
+
+        with tab2:
+            st.header("Zaman Serisi Analizi")
+            
+            fig = px.line(df_processed, x='timestamp', y=['raw_value', 'cleaned_value'],
+                          title="Ham ve Temizlenmiş Veri Karşılaştırması",
+                          labels={'value': 'Değer', 'timestamp': 'Zaman'},
+                          template='plotly_dark')
+            
+            # Anomali noktalarını grafiğe ekle
+            anomalies = df_processed[df_processed['is_outlier']]
+            fig.add_trace(px.scatter(anomalies, x='timestamp', y='raw_value').data[0].update(
+                mode='markers', marker=dict(color='red', size=8, symbol='x'), name='Anomali'
+            ))
+            
+            st.plotly_chart(fig, use_container_width=True)
+
+        with tab3:
+            st.header("Anomali Analizi")
+            
+            anomalies_df = df_processed[df_processed['is_outlier']].copy()
+            
+            if not anomalies_df.empty:
+                anomalies_df['Sapma Miktarı'] = (anomalies_df['raw_value'] - anomalies_df['cleaned_value']).abs()
+                
+                st.subheader("Tespit Edilen Anomaliler")
+                
+                # Tabloyu göster
+                st.dataframe(anomalies_df[['timestamp', 'raw_value', 'cleaned_value', 'Sapma Miktarı']])
+                
+                # Uyarı Mesajı
+                # Anomalilerin yoğun olduğu aralıkları bulmak için basit bir yöntem:
+                # Zaman farklarına bakarak kümeleri ayırabiliriz.
+                anomalies_df['time_diff'] = anomalies_df['timestamp'].diff().dt.total_seconds().fillna(0)
+                # Zaman farkı belirli bir eşiğin üzerindeyse yeni bir küme başlar.
+                cluster_threshold = 60 * 5 # 5 dakika
+                anomalies_df['cluster'] = (anomalies_df['time_diff'] > cluster_threshold).cumsum()
+
+                yoğun_aralıklar = []
+                for cluster_id, group in anomalies_df.groupby('cluster'):
+                    if len(group) > 2: # Kümede en az 3 anomali varsa 'yoğun' kabul edelim
+                        start_time = group['timestamp'].min().strftime('%Y-%m-%d %H:%M')
+                        end_time = group['timestamp'].max().strftime('%Y-%m-%d %H:%M')
+                        yoğun_aralıklar.append(f"**{start_time}** ile **{end_time}** arası")
+
+                if yoğun_aralıklar:
+                    st.warning(f"⚠️ Anomaliler şu zaman aralıklarında yoğunlaşmış görünüyor: {', '.join(yoğun_aralıklar)}.")
+                else:
+                    st.info("Anomaliler belirli bir zaman aralığında yoğunlaşmamış, genel olarak dağılmış durumda.")
+
+            else:
+                st.success("✅ Seçilen hassasiyet ayarlarında herhangi bir anomali tespit edilmedi.")
+>>>>>>> e2b6206dab09625c4c4c915db2f6399cc90dfc2a
