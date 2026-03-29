@@ -85,6 +85,23 @@ if canli_mod:
             if show_snr:
                 snr_module.render_snr_ui(df_p, col)
             
+            # ✅ YENİ: Radyasyon Hasar Raporu
+            with st.expander(f"🔬 {col.upper()} Radyasyon Hasar Raporu"):
+                report = processor.summary_report(df_p, col)
+                
+                r1, r2, r3, r4 = st.columns(4)
+                r1.metric("⚠️ Toplam Anomali", report["outliers_found"])
+                r2.metric("📊 Anomali Oranı", report["outlier_ratio"])
+                r3.metric("🔇 Gürültü Azaltma", report["noise_reduction"])
+                r4.metric("📈 Toplam Veri", report["total_points"])
+                
+                if "damage_breakdown" in report and report["damage_breakdown"]:
+                    st.write("*Radyasyon Hasar Türleri:*")
+                    dmg_cols = st.columns(len(report["damage_breakdown"]))
+                    for i, (dmg_type, count) in enumerate(report["damage_breakdown"].items()):
+                        emoji = {"BIT_FLIP": "⚡", "SPIKE": "📈", "DROPOUT": "📉", "DRIFT": "🌀", "NORMAL": "✅"}.get(dmg_type, "🔹")
+                        dmg_cols[i].metric(f"{emoji} {dmg_type}", count)
+
             # Grafik Çizimi
             fig = px.line(df_p, x='time_tag', y=[col, 'cleaned_value', 'kalman_value'],
                          color_discrete_map={col: '#DC143C', 'cleaned_value': '#00FF7F', 'kalman_value': '#00BFFF'},
@@ -140,9 +157,9 @@ else:
                         df_processed = processor.clean_telemetry(df_islem, column=sutun)
                         df_processed['kalman_value'] = processor.apply_kalman_filter(df_processed['cleaned_value'])
                         
-                        # 🔥 İSTEDİĞİN YAN YANA METRİKLER BURADA
+                        # Metrikler
                         st.divider()
-                        m1, m2, m3 = st.columns(3) # 3 sütuna böldük
+                        m1, m2, m3 = st.columns(3)
                         
                         m1.metric("📊 Toplam Veri", f"{len(df_processed)} Satır")
                         
@@ -150,12 +167,30 @@ else:
                         hata_orani = (hata_sayisi / len(df_processed)) * 100
                         m2.metric("⚠️ Tespit Edilen Hata", f"{hata_sayisi} Adet", f"%{hata_orani:.1f} Yoğunluk", delta_color="inverse")
                         
-                        # SNR Modülünü 3. sütuna yerleştiriyoruz
                         with m3:
                             if show_snr:
                                 snr_module.render_snr_ui(df_processed, sutun)
                             else:
                                 st.metric("📡 SNR Analizi", "Kapalı")
+
+                        # ✅ YENİ: Radyasyon Hasar Raporu
+                        st.divider()
+                        st.subheader("🔬 Radyasyon Hasar Analizi")
+                        report = processor.summary_report(df_processed, sutun)
+
+                        r1, r2, r3 = st.columns(3)
+                        r1.metric("🔇 Gürültü Azaltma", report["noise_reduction"])
+                        r2.metric("📊 Anomali Oranı", report["outlier_ratio"])
+                        r3.metric("⚠️ Anomali Sayısı", report["outliers_found"])
+
+                        if "damage_breakdown" in report and report["damage_breakdown"]:
+                            st.write("*Radyasyon Hasar Türleri:*")
+                            dmg_cols = st.columns(len(report["damage_breakdown"]))
+                            for i, (dmg_type, count) in enumerate(report["damage_breakdown"].items()):
+                                emoji = {"BIT_FLIP": "⚡", "SPIKE": "📈", "DROPOUT": "📉", "DRIFT": "🌀", "NORMAL": "✅"}.get(dmg_type, "🔹")
+                                dmg_cols[i].metric(f"{emoji} {dmg_type}", count)
+
+                        st.divider()
                         
                         # Grafik Çizimi
                         fig = px.line(df_processed, y=[sutun, 'cleaned_value', 'kalman_value'],
