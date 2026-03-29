@@ -1,3 +1,6 @@
+https://kozmikfiltreleme.streamlit.app/  -->  DEMO WEBSİTEMİZİN LİNKİ
+
+
 🚀 Kozmik Ekip: Proje Kurulum ve Çalışma Rehberi
 
 Arkadaşlar selam! Projenin iskeletini kurdum ve klasör yapısını profesyonel standartlara göre güncelledim. Artık hepimiz aynı sistem üzerinden, birbirimizin kodunu bozmadan, tam bir takım ruhuyla çalışabiliriz.
