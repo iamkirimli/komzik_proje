@@ -10,7 +10,11 @@ class TelemetryProcessor:
     bit-flip, spike ve veri bozulmalarını tespit eder ve temizler.
     """
 
+<<<<<<< HEAD
     def _init_(self, threshold=3.5):
+=======
+    def __init__(self, threshold=3.5):
+>>>>>>> 1517291cd3d7c6b1422f306163b19f198f3016cf
         self.threshold = threshold
         self.window_size = 15
         self.q_val = 0.02
@@ -206,4 +210,8 @@ class TelemetryProcessor:
             "original_std": round(original_std, 4),
             "cleaned_std": round(cleaned_std, 4),
             "damage_breakdown": damage_counts
+<<<<<<< HEAD
         }
+=======
+        }
+>>>>>>> 1517291cd3d7c6b1422f306163b19f198f3016cf
