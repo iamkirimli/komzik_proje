@@ -60,8 +60,13 @@ def plot_telemetry(df, column, title_prefix="", x_col=None):
     return fig
 
 def render_damage_metrics(report):
-    breakdown = report.get("damage_breakdown", {})
-    if not breakdown: return
+    # Veri 'None' gelse bile çökmesin diye '{}' (boş küme) olarak yakalıyoruz.
+    breakdown = report.get("damage_breakdown") or {}
+    
+    # Gösterecek hasar yoksa sessizce durdur, hata verme.
+    if not breakdown:
+        return
+        
     cols = st.columns(max(len(breakdown), 1))
     for i, (dmg_type, count) in enumerate(breakdown.items()):
         emoji = DAMAGE_EMOJI.get(dmg_type, "🔹")
